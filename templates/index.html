@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LatticeQ AI</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- favicon -->
+<link rel="icon" href="https://images.seeklogo.com/logo-png/0/1/amd-logo-png_seeklogo-7779.png" />
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg:      #0B0F19;
+    --surface: #111827;
+    --surface2:#161E2E;
+    --border:  rgba(255,106,0,0.12);
+    --border-hi:rgba(255,106,0,0.35);
+    --orange:  #FF6A00;
+    --amber:   #FFA500;
+    --red:     #FF3B3B;
+    --green:   #22C55E;
+    --text:    #E6EDF3;
+    --muted:   #4B5563;
+    --sub:     #9CA3AF;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
+
+  /* ── NAV ── */
+  nav {
+    height: 60px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px;
+    background: rgba(11,15,25,0.98);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .nav-brand { font-family: 'Inter', monospace; font-size: 14px; font-weight: 700; letter-spacing: 3px; }
+  .nav-brand em { color: var(--orange); font-style: normal; }
+  /* brand logo */
+  .nav-left { display: flex; align-items: center; }
+  .nav-logo { width: 32px; height: auto; margin-right: 8px; }
+
+  .nav-right { display: flex; align-items: center; gap: 24px; }
+  .nav-status { display: flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--sub); letter-spacing: 1px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: blink 2s ease-in-out infinite; }
+  .dot.red-dot { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* Admin avatar in nav */
+  .nav-admin {
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer; padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    transition: border-color .2s;
+  }
+  .nav-admin:hover { border-color: var(--border-hi); }
+  .avatar-sm {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, #FF6A00, #FF3B3B);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Inter', monospace; font-size: 11px; font-weight: 700; color: white;
+  }
+  .nav-admin-name { font-size: 12px; font-weight: 500; color: var(--sub); }
+
+  /* ── SHELL ── */
+  .shell { display: flex; min-height: calc(100vh - 60px); }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 260px; flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    padding: 32px 0;
+  }
+
+  .admin-card {
+    padding: 0 24px 28px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+    text-align: center;
+  }
+
+  .avatar-lg {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: linear-gradient(135deg, #FF6A00, #FF3B3B);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Inter', monospace; font-size: 22px; font-weight: 700; color: white;
+    margin: 0 auto 14px;
+    box-shadow: 0 0 24px rgba(255,106,0,0.25);
+  }
+
+  .admin-name { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .admin-role {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    letter-spacing: 2px; color: var(--orange); text-transform: uppercase;
+  }
+
+  .admin-meta { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .meta-row { display: flex; justify-content: space-between; align-items: center; }
+  .meta-key { font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: 1px; text-transform: uppercase; }
+  .meta-val { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--sub); }
+
+  /* Sidebar section */
+  .sidebar-section { padding: 0 24px; margin-bottom: 28px; }
+  .sidebar-label { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; font-weight: 600; }
+
+  /* Sim buttons */
+  .sim-btn {
+    width: 100%; padding: 12px 16px;
+    border-radius: 4px; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase;
+    transition: all .25s; display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px; border: 1px solid;
+  }
+
+  .sim-btn .btn-icon { font-size: 14px; }
+
+  .btn-normal {
+    background: rgba(34,197,94,0.07);
+    border-color: rgba(34,197,94,0.25);
+    color: var(--green);
+  }
+  .btn-normal:hover, .btn-normal.active {
+    background: rgba(34,197,94,0.14);
+    border-color: rgba(34,197,94,0.6);
+    box-shadow: 0 0 16px rgba(34,197,94,0.1);
+  }
+
+  .btn-threat {
+    background: rgba(255,59,59,0.07);
+    border-color: rgba(255,59,59,0.25);
+    color: var(--red);
+  }
+  .btn-threat:hover, .btn-threat.active {
+    background: rgba(255,59,59,0.14);
+    border-color: rgba(255,59,59,0.6);
+    box-shadow: 0 0 16px rgba(255,59,59,0.1);
+  }
+
+  .btn-normal.active .btn-dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .btn-threat.active .btn-dot { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+  .btn-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-left: auto; opacity: 0; transition: opacity .2s; }
+  .sim-btn.active .btn-dot { opacity: 1; }
+
+  /* Sidebar divider */
+  .sidebar-divider { height: 1px; background: var(--border); margin: 4px 24px 24px; }
+
+  /* Session info */
+  .session-info { padding: 0 24px; margin-top: auto; }
+  .session-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+  .session-key { font-size: 11px; color: var(--muted); }
+  .session-val { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--sub); }
+
+  /* ── MAIN ── */
+  .main { flex: 1; padding: 36px 36px 60px; display: flex; flex-direction: column; gap: 24px; overflow-y: auto; }
+
+  /* ── METRICS ── */
+  .metrics { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px; }
+
+  .metric {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px; padding: 24px;
+    position: relative; transition: border-color .4s, box-shadow .4s;
+  }
+  .metric::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, var(--orange) 0%, transparent 60%);
+    border-radius: 6px 6px 0 0; opacity: .6;
+  }
+  .metric.alert { border-color: rgba(255,59,59,.35); box-shadow: 0 0 24px rgba(255,59,59,.07); }
+  .metric.alert::after { background: linear-gradient(90deg, var(--red) 0%, transparent 60%); opacity: 1; }
+  .metric.suspicious { border-color: rgba(255,165,0,.4); box-shadow: 0 0 24px rgba(255,165,0,.05); }
+  .metric.suspicious::after { background: linear-gradient(90deg, var(--amber) 0%, transparent 60%); opacity: .8; }
+  .metric.ok { border-color: rgba(34,197,94,.25); }
+  .metric.ok::after { background: linear-gradient(90deg, var(--green) 0%, transparent 60%); opacity: .7; }
+
+  .metric-label { font-size: 10px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+
+  .metric-value { font-family: 'Inter', monospace; font-size: 48px; font-weight: 900; line-height: 1; color: var(--orange); transition: color .4s; }
+  .metric-value.red { color: var(--red); text-shadow: 0 0 20px rgba(255,59,59,.4); }
+  .metric-value.amber { color: var(--amber); }
+  .metric-value.green-v { color: var(--green); }
+  .metric-unit { font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 300; opacity: .6; }
+
+  .metric-bar { margin-top: 14px; height: 2px; background: rgba(255,255,255,.05); border-radius: 2px; overflow: hidden; }
+  .metric-bar-fill { height: 100%; border-radius: 2px; background: var(--orange); transition: width .8s ease, background .4s; }
+  .metric-desc { margin-top: 8px; font-size: 12px; color: var(--sub); }
+
+  .state-text { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 1px; transition: color .4s; margin-top: 4px; }
+  .state-rows { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .state-row { display: flex; justify-content: space-between; align-items: center; }
+  .state-key { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+  .state-val { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+  /* ── CHART ── */
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 24px; position: relative; }
+  .chart-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, var(--orange) 0%, transparent 60%); border-radius: 6px 6px 0 0; opacity: .6; }
+  .chart-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .chart-title { font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--sub); }
+  .chart-legend { display: flex; gap: 18px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); }
+  .legend-line { width: 18px; height: 2px; border-radius: 1px; }
+  .chart-wrap { height: 190px; }
+
+  /* ── EVENT LOG ── */
+  .log-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 24px; }
+  .log-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .log-title { font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--sub); }
+  .log-body { background: #0A0D16; border: 1px solid rgba(255,255,255,.04); border-radius: 4px; padding: 14px 16px; height: 140px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; line-height: 2; }
+  .log-body::-webkit-scrollbar { width: 3px; }
+  .log-body::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+  .log-entry { display: flex; gap: 12px; }
+  .log-ts { color: var(--muted); flex-shrink: 0; }
+  .log-text { color: #6B7D99; }
+  .log-text.warn { color: var(--amber); }
+  .log-text.crit { color: var(--red); }
+  .log-text.ok   { color: var(--green); }
+  .log-text.info { color: var(--orange); }
+
+  /* ── INSIGHTS PANEL ── */
+  .insights-panel {
+    background: var(--surface);
+    border: 1px solid var(--border-hi);
+    border-radius: 6px;
+    overflow: hidden;
+    animation: slideIn .4s ease;
+  }
+
+  @keyframes slideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  .insights-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(255,59,59,0.04);
+  }
+
+  .insights-title {
+    font-family: 'Inter', monospace; font-size: 12px; font-weight: 700;
+    letter-spacing: 2px; color: var(--red); text-transform: uppercase;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .insights-title::before {
+    content: ''; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--red); box-shadow: 0 0 8px var(--red);
+    animation: blink 1.5s ease-in-out infinite;
+  }
+
+  .insights-badge {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    padding: 4px 10px; border-radius: 2px;
+    background: rgba(255,59,59,0.1); color: var(--red);
+    border: 1px solid rgba(255,59,59,0.3); letter-spacing: 1px;
+  }
+
+  .insights-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+  /* Insight blocks */
+  .insight-section-title {
+    font-size: 10px; font-weight: 600; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .insight-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .insight-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  .insight-stat {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px; padding: 16px;
+    text-align: center;
+  }
+  .insight-stat-val { font-family: 'Inter', monospace; font-size: 28px; font-weight: 900; color: var(--red); line-height: 1; }
+  .insight-stat-val.orange { color: var(--orange); }
+  .insight-stat-val.green { color: var(--green); }
+  .insight-stat-label { font-size: 10px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 6px; font-weight: 600; }
+
+  /* Timeline steps */
+  .timeline { display: flex; flex-direction: column; gap: 0; }
+  .tl-item { display: flex; gap: 16px; padding-bottom: 16px; position: relative; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-item:last-child .tl-line { display: none; }
+
+  .tl-left { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+  .tl-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+  .tl-line { width: 1px; flex: 1; background: var(--border); margin-top: 4px; }
+
+  .tl-content { flex: 1; padding-bottom: 4px; }
+  .tl-step { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 2px; }
+  .tl-desc { font-size: 12px; color: var(--sub); line-height: 1.6; }
+  .tl-time { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* Containment summary */
+  .contain-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .contain-item {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 14px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .contain-key { font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: 1px; text-transform: uppercase; }
+  .contain-val { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  /* Dismiss btn */
+  .dismiss-btn {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 7px 14px; background: transparent;
+    border: 1px solid var(--border); color: var(--muted);
+    border-radius: 3px; cursor: pointer; transition: all .2s;
+  }
+  .dismiss-btn:hover { border-color: var(--sub); color: var(--text); }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-left">
+    <img class="nav-logo" src="https://images.seeklogo.com/logo-png/0/1/amd-logo-png_seeklogo-7779.png" alt="AMD logo" />
+    <div class="nav-brand">LatticeQ<em></em> Edge AI Cyber Encryption for Campus</div>
+  </div>
+  <div class="nav-right">
+    <div class="nav-status">
+      <div class="dot" id="sys-dot"></div>
+      <span id="sys-label">SYSTEM OPERATIONAL</span>
+    </div>
+    <div class="nav-admin">
+      <div class="avatar-sm">AK</div>
+      <span class="nav-admin-name">Admin</span>
+    </div>
+  </div>
+</nav>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="admin-card">
+      <div class="avatar-lg">AK</div>
+      <div class="admin-name">Admin</div>
+      <div class="admin-role">Security Administrator</div>
+      <div class="admin-meta">
+        <div class="meta-row">
+          <span class="meta-key">Access</span>
+          <span class="meta-val" style="color:var(--green)">LEVEL 3 — FULL</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-key">Clearance</span>
+          <span class="meta-val" style="color:var(--orange)">TOP SECRET</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-key">Campus</span>
+          <span class="meta-val">IIT Madras</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Simulation Mode</div>
+
+      <button class="sim-btn btn-normal active" id="btn-normal" onclick="runNormal()">
+        <span class="btn-icon">◉</span>
+        Normal Traffic
+        <span class="btn-dot"></span>
+      </button>
+
+      <button class="sim-btn btn-threat" id="btn-threat" onclick="runThreat()">
+        <span class="btn-icon">⚠</span>
+        Threat Attack
+        <span class="btn-dot"></span>
+      </button>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Model Info</div>
+      <div class="meta-row" style="margin-bottom:8px">
+        <span class="meta-key">Algorithm</span>
+        <span class="meta-val" style="color:var(--sub)">Autoencoder</span>
+      </div>
+      <div class="meta-row" style="margin-bottom:8px">
+        <span class="meta-key">Threshold</span>
+        <span class="meta-val" style="color:var(--orange)" id="threshold-display">0.55</span>
+      </div>
+      <div class="meta-row" style="margin-bottom:8px">
+        <span class="meta-key">Encryption</span>
+        <span class="meta-val" style="color:var(--sub)">Kyber-768</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-key">Version</span>
+        <span class="meta-val" style="color:var(--sub)">v3.2.1</span>
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label" style="color:var(--orange);opacity:.7">Node Identity</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--orange);letter-spacing:1.5px;line-height:1.6;opacity:.85">
+        EDGE AUTONOMOUS<br>DEFENSE NODE ON AMD ZYNQ ULTRASCALE+ ZCU102  
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px;">
+        PQC-secured · Autoencoder-driven · SOAR-integrated
+      </div>
+    </div>
+
+    <div class="session-info">
+      <div class="sidebar-label">Session</div>
+      <div class="session-row">
+        <span class="session-key">Logged in</span>
+        <span class="session-val" id="login-time">—</span>
+      </div>
+      <div class="session-row">
+        <span class="session-key">IP</span>
+        <span class="session-val">192.168.1.10</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- METRICS -->
+    <div class="metrics">
+      <div class="metric" id="m-risk">
+        <div class="metric-label">Threat Risk Index</div>
+        <div class="metric-value" id="risk-val">12</div>
+        <div class="metric-bar"><div class="metric-bar-fill" id="risk-bar" style="width:12%"></div></div>
+        <div class="metric-desc" id="risk-desc">Within normal parameters</div>
+      </div>
+
+      <div class="metric" id="m-dev">
+        <div class="metric-label">Behavioral Deviation</div>
+        <div class="metric-value" id="dev-val">18<span class="metric-unit">%</span></div>
+        <div class="metric-bar"><div class="metric-bar-fill" id="dev-bar" style="width:18%; background:var(--amber)"></div></div>
+        <div class="metric-desc">Relative to adaptive baseline</div>
+      </div>
+
+      <div class="metric ok" id="m-state">
+        <div class="metric-label">Network State</div>
+        <div class="state-text" id="state-val" style="color:var(--green)">BASELINE BEHAVIOR</div>
+        <div class="state-rows">
+          <div class="state-row">
+            <span class="state-key">PQC Channel</span>
+            <span class="state-val" id="pqc-val" style="color:var(--green)">KYBER-768 READY</span>
+          </div>
+          <div class="state-row">
+            <span class="state-key">SOAR Policy</span>
+            <span class="state-val" id="soar-val" style="color:var(--muted)">IDLE</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="metric" id="m-incidents">
+        <div class="metric-label">Incidents Today</div>
+        <div class="metric-value green-v" id="incident-count">0</div>
+        <div class="metric-bar"><div class="metric-bar-fill" id="incident-bar" style="width:0%; background:var(--red)"></div></div>
+        <div class="metric-desc" id="incident-desc">No incidents recorded</div>
+      </div>
+
+    </div>
+
+    <!-- CHART -->
+    <div class="chart-card">
+      <div class="chart-head">
+        <div class="chart-title">Live Anomaly Detection</div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-line" style="background:var(--orange)"></div>Reconstruction Error</div>
+          <div class="legend-item"><div class="legend-line" style="background:var(--red);opacity:.6"></div>Threshold (<span id="threshold-legend">0.55</span>)</div>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="chart"></canvas></div>
+    </div>
+
+    <!-- EVENT LOG -->
+    <div class="log-card">
+      <div class="log-head">
+        <div class="log-title">Event Log</div>
+      </div>
+      <div class="log-body" id="log"></div>
+    </div>
+
+    <!-- INSIGHTS PANEL (hidden by default) -->
+    <div class="insights-panel hidden" id="insights">
+      <div class="insights-header">
+        <div class="insights-title">Incident Report — Attack Analysis</div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <div class="insights-badge">CONTAINED</div>
+          <button class="dismiss-btn" onclick="dismissInsights()">✕ Dismiss</button>
+        </div>
+      </div>
+
+      <div class="insights-body">
+
+        <!-- Stats -->
+        <div>
+          <div class="insight-section-title">Attack Summary</div>
+          <div class="insight-grid">
+            <div class="insight-stat">
+              <div class="insight-stat-val">100</div>
+              <div class="insight-stat-label">Peak Risk Index</div>
+            </div>
+            <div class="insight-stat">
+              <div class="insight-stat-val orange">1.50</div>
+              <div class="insight-stat-label">Max Recon. Error</div>
+            </div>
+            <div class="insight-stat">
+              <div class="insight-stat-val green">12s</div>
+              <div class="insight-stat-label">Time to Contain</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Attack timeline -->
+        <div>
+          <div class="insight-section-title">How the Attack Unfolded</div>
+          <div class="timeline">
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-line"></div></div>
+              <div class="tl-content">
+                <div class="tl-step" style="color:var(--amber)">Phase 1 — Reconnaissance</div>
+                <div class="tl-desc">Attacker at <strong>10.0.0.5</strong> began probing the network with abnormal packet bursts. Reconstruction error climbed from 0.22 → 0.51, crossing 78% deviation.</div>
+                <div class="tl-time">+0s — +3.5s</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot" style="background:var(--red)"></div><div class="tl-line"></div></div>
+              <div class="tl-content">
+                <div class="tl-step" style="color:var(--red)">Phase 2 — Threshold Breach</div>
+                <div class="tl-desc">Autoencoder detected a behavioral pattern unseen during training. Reconstruction error hit <strong>0.60</strong>, confirming an anomaly. Risk Index escalated to 84.</div>
+                <div class="tl-time">+4s — +5s</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot" style="background:var(--red)"></div><div class="tl-line"></div></div>
+              <div class="tl-content">
+                <div class="tl-step" style="color:var(--red)">Phase 3 — Active Intrusion</div>
+                <div class="tl-desc">Traffic surged to maximum anomaly. Reconstruction error peaked at <strong>1.50</strong>. Risk Index hit <strong>100</strong>. Attacker was actively exploiting the network channel.</div>
+                <div class="tl-time">+6s — +8s</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot" style="background:var(--orange)"></div><div class="tl-line"></div></div>
+              <div class="tl-content">
+                <div class="tl-step" style="color:var(--orange)">Phase 4 — PQC Response</div>
+                <div class="tl-desc">Kyber-768 post-quantum channel was immediately activated for all containment signaling, ensuring that the attacker could not intercept or spoof response commands.</div>
+                <div class="tl-time">+6s</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-line"></div></div>
+              <div class="tl-content">
+                <div class="tl-step" style="color:var(--green)">Phase 5 — Automated Containment</div>
+                <div class="tl-desc">SOAR policy engine triggered an automated edge block. IP <strong>10.0.0.5</strong> was quarantined at the network ingress. No manual intervention was required.</div>
+                <div class="tl-time">+9s</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot" style="background:var(--green)"></div></div>
+              <div class="tl-content">
+                <div class="tl-step" style="color:var(--green)">Phase 6 — Recovery</div>
+                <div class="tl-desc">Reconstruction error fell from 1.50 → 0.20 over 8 seconds post-block. Network returned to baseline. Autoencoder recalibrated adaptive model with the new attack pattern.</div>
+                <div class="tl-time">+10s — +17s</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Containment details -->
+        <div>
+          <div class="insight-section-title">Containment Details</div>
+          <div class="contain-grid">
+            <div class="contain-item">
+              <span class="contain-key">Attacker IP</span>
+              <span class="contain-val" style="color:var(--red)">10.0.0.5</span>
+            </div>
+            <div class="contain-item">
+              <span class="contain-key">Block Method</span>
+              <span class="contain-val" style="color:var(--orange)">Edge Ingress Block</span>
+            </div>
+            <div class="contain-item">
+              <span class="contain-key">Action</span>
+              <span class="contain-val" style="color:var(--orange)">IP Quarantine</span>
+            </div>
+            <div class="contain-item">
+              <span class="contain-key">Encryption</span>
+              <span class="contain-val" style="color:var(--green)">Kyber-768 PQC</span>
+            </div>
+            <div class="contain-item">
+              <span class="contain-key">Response Mode</span>
+              <span class="contain-val" style="color:var(--green)">Fully Automated</span>
+            </div>
+            <div class="contain-item">
+              <span class="contain-key">Data Exfiltrated</span>
+              <span class="contain-val" style="color:var(--green)">None Detected</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   CAMPUS AI-NDR — Hardened Frontend
+   All 10 production fixes applied
+═══════════════════════════════════════════════ */
+
+// ── Fix #7: Dynamic threshold from backend
+let THRESHOLD = 0.55;
+const MAX = 50;
+
+let chartData = [];
+let chartLabels = [];
+
+// ── Fix #5: Smooth risk display
+let displayedRisk = 0;
+
+// ── Fix #6: Incident counter
+let incidentCount = 0;
+let previousState = "NORMAL";
+
+// scroll once on threat mode
+let scrolledToReports = false;
+
+// ── Fix #4: Append-only event log
+let lastEventIndex = 0;
+
+// ── Fix #1: Backend watchdog
+let lastFetchTime = Date.now();
+
+function ts() {
+  return new Date().toTimeString().slice(0,8);
+}
+
+/* ──────────────────────────────────────────────
+   CHART INIT  (Fix #2: threshold drawn immediately)
+────────────────────────────────────────────── */
+const ctx = document.getElementById('chart').getContext('2d');
+const grad = ctx.createLinearGradient(0, 0, 0, 190);
+grad.addColorStop(0, 'rgba(255,106,0,.18)');
+grad.addColorStop(1, 'rgba(255,106,0,.01)');
+
+const chart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: chartLabels,
+    datasets: [
+      {
+        data: chartData,
+        borderColor: '#FF6A00',
+        borderWidth: 2,
+        backgroundColor: grad,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 0
+      },
+      {
+        data: Array(chartData.length).fill(THRESHOLD), // Fix #2: immediate threshold
+        borderColor: 'rgba(255,59,59,.5)',
+        borderWidth: 1,
+        borderDash: [6, 4],
+        fill: false,
+        pointRadius: 0,
+        tension: 0
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 250 },
+    plugins: { legend: { display: false } },
+    scales: {
+      x: {
+        ticks: { color: '#374151', font: { family: 'JetBrains Mono', size: 9 }, maxTicksLimit: 8 },
+        grid: { color: 'rgba(255,255,255,.03)' },
+        border: { color: 'transparent' }
+      },
+      y: {
+        min: 0, max: 1.8,
+        ticks: { color: '#374151', font: { family: 'JetBrains Mono', size: 9 }, stepSize: 0.3 },
+        grid: { color: 'rgba(255,255,255,.03)' },
+        border: { color: 'transparent' }
+      }
+    }
+  }
+});
+
+function pushChart(val) {
+  if (chartData.length >= MAX) { chartData.shift(); chartLabels.shift(); }
+  chartData.push(val);
+  chartLabels.push(ts());
+  chart.data.datasets[1].data = Array(chartData.length).fill(THRESHOLD);
+  chart.update('none');
+}
+
+/* ──────────────────────────────────────────────
+   FIX #5: Smooth interpolation helper
+────────────────────────────────────────────── */
+function smooth(current, target, factor = 0.2) {
+  return current + (target - current) * factor;
+}
+
+/* ──────────────────────────────────────────────
+   MAIN UI UPDATE
+────────────────────────────────────────────── */
+function updateUI(data) {
+
+  // Fix #3: Guard against malformed backend responses
+  if (!data || typeof data.loss !== 'number') return;
+
+  const risk      = Number(data.risk)      || 0;
+  const deviation = Number(data.deviation) || 0;
+  const state     = data.state             || 'NORMAL';
+  const events    = Array.isArray(data.events) ? data.events : [];
+
+  // Fix #7: Sync dynamic threshold
+  if (typeof data.threshold === 'number') {
+    THRESHOLD = data.threshold;
+    document.getElementById('threshold-display').textContent = THRESHOLD.toFixed(2);
+    document.getElementById('threshold-legend').textContent  = THRESHOLD.toFixed(2);
+  }
+
+  pushChart(data.loss);
+
+  /* ── Risk card (Fix #5: smooth transition) ── */
+  displayedRisk = smooth(displayedRisk, risk);
+  const smoothRisk = Math.round(displayedRisk);
+
+  document.getElementById('risk-val').textContent = smoothRisk;
+  document.getElementById('risk-bar').style.width = smoothRisk + '%';
+
+  const riskCard = document.getElementById('m-risk');
+  const riskDesc = document.getElementById('risk-desc');
+  const riskEl   = document.getElementById('risk-val');
+
+  // Fix #8: Distinct card styles for SUSPICIOUS vs CRITICAL
+  if (state === 'CRITICAL') {
+    riskCard.className = 'metric alert';
+    riskEl.style.color = '#FF3B3B';
+    riskEl.style.textShadow = '0 0 20px rgba(255,59,59,.4)';
+    document.getElementById('risk-bar').style.background = '#FF3B3B';
+    riskDesc.textContent = 'Critical — automated containment active';
+  } else if (state === 'SUSPICIOUS') {
+    riskCard.className = 'metric suspicious';
+    riskEl.style.color = '#FFA500';
+    riskEl.style.textShadow = 'none';
+    document.getElementById('risk-bar').style.background = '#FFA500';
+    riskDesc.textContent = 'Elevated — monitoring deviation';
+  } else {
+    riskCard.className = 'metric';
+    riskEl.style.color = '#FF6A00';
+    riskEl.style.textShadow = 'none';
+    document.getElementById('risk-bar').style.background = '#FF6A00';
+    riskDesc.textContent = 'Within learned baseline manifold';
+  }
+
+  /* ── Deviation card ── */
+  document.getElementById('dev-val').innerHTML =
+    Math.min(deviation, 199) + '<span class="metric-unit">%</span>';
+  const db = document.getElementById('dev-bar');
+  db.style.width = Math.min(deviation, 100) + '%';
+  db.style.background = deviation >= 100 ? '#FF3B3B' : deviation >= 60 ? '#FFA500' : '#FF6A00';
+
+  /* ── State card ── */
+  const stateVal  = document.getElementById('state-val');
+  const soarVal   = document.getElementById('soar-val');
+  const pqcVal    = document.getElementById('pqc-val');
+  const sysDot    = document.getElementById('sys-dot');
+  const sysLabel  = document.getElementById('sys-label');
+  const insights  = document.getElementById('insights');
+  const mState    = document.getElementById('m-state');
+
+  if (state === 'CRITICAL') {
+    stateVal.textContent = 'ACTIVE THREAT';    stateVal.style.color = '#FF3B3B';
+    soarVal.textContent  = 'EDGE BLOCK';       soarVal.style.color  = '#FF3B3B';
+    pqcVal.textContent   = 'CHANNEL ACTIVE';   pqcVal.style.color   = '#FF6A00';
+    sysDot.className     = 'dot red-dot';
+    sysLabel.textContent = 'UNDER ATTACK';
+    mState.className     = 'metric alert';
+    insights.classList.remove('hidden');
+
+  } else if (state === 'SUSPICIOUS') {
+    stateVal.textContent = 'SUSPICIOUS PATTERN'; stateVal.style.color = '#FFA500';
+    soarVal.textContent  = 'ELEVATED';           soarVal.style.color  = '#FFA500';
+    pqcVal.textContent   = 'KYBER-768 READY';    pqcVal.style.color   = '#22C55E';
+    // Fix #9: Reset dot when backend recovers to non-critical
+    sysDot.className     = 'dot';
+    sysLabel.textContent = 'ELEVATED ALERT';
+    mState.className     = 'metric';
+    insights.classList.add('hidden');
+
+  } else {
+    stateVal.textContent = 'BASELINE BEHAVIOR';  stateVal.style.color = '#22C55E';
+    soarVal.textContent  = 'IDLE';               soarVal.style.color  = '#9CA3AF';
+    pqcVal.textContent   = 'KYBER-768 READY';    pqcVal.style.color   = '#22C55E';
+    // Fix #9: Properly reset status dot when backend is back online
+    sysDot.className     = 'dot';
+    sysLabel.textContent = 'SYSTEM OPERATIONAL';
+    mState.className     = 'metric ok';
+    insights.classList.add('hidden');
+  }
+
+  /* ── Fix #6: Incident counter ── */
+  if (state === 'CRITICAL' && previousState !== 'CRITICAL') {
+    incidentCount++;
+    document.getElementById('incident-count').textContent = incidentCount;
+    document.getElementById('incident-bar').style.width = Math.min(incidentCount * 10, 100) + '%';
+    document.getElementById('incident-desc').textContent =
+      incidentCount === 1 ? '1 incident this session' : `${incidentCount} incidents this session`;
+    document.getElementById('m-incidents').className = 'metric alert';
+    document.getElementById('incident-count').style.color = '#FF3B3B';
+  } else if (state !== 'CRITICAL' && previousState === 'CRITICAL') {
+    // Threat passed — keep count but soften card
+    document.getElementById('m-incidents').className = 'metric suspicious';
+  }
+  previousState = state;
+
+  /* ── Fix #4: Append-only event log (no wipe on each poll) ── */
+  const logDiv = document.getElementById('log');
+  const newEvents = events.slice(lastEventIndex);
+  newEvents.forEach(e => {
+    const row = document.createElement('div');
+    row.className = 'log-entry';
+    row.innerHTML = `<span class="log-ts">${e.time}</span><span class="log-text ${e.level}">${e.msg}</span>`;
+    logDiv.appendChild(row);
+  });
+  if (newEvents.length) logDiv.scrollTop = logDiv.scrollHeight;
+  lastEventIndex = events.length;
+
+  // Cap log at 100 entries to prevent DOM bloat
+  while (logDiv.children.length > 100) logDiv.removeChild(logDiv.firstChild);
+}
+
+/* ──────────────────────────────────────────────
+   FIX #1: Backend Watchdog
+   If /metrics stops responding → show DATA STALE
+────────────────────────────────────────────── */
+setInterval(() => {
+  if (Date.now() - lastFetchTime > 6000) {
+    document.getElementById('sys-dot').className   = 'dot red-dot';
+    document.getElementById('sys-label').textContent = 'DATA STALE';
+  }
+}, 2000);
+
+/* ──────────────────────────────────────────────
+   BACKEND POLLING
+────────────────────────────────────────────── */
+function fetchMetrics() {
+  fetch('/metrics')
+    .then(res => res.json())
+    .then(data => {
+      lastFetchTime = Date.now(); // Fix #1: reset watchdog on success
+      updateUI(data);
+    })
+    .catch(err => console.error('Backend not reachable:', err));
+}
+
+function runNormal() {
+  // Toggle active button state immediately for responsiveness
+  document.getElementById('btn-normal').classList.add('active');
+  document.getElementById('btn-threat').classList.remove('active');
+  fetch('/set_mode', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: 'normal' })
+  });
+}
+
+function runThreat() {
+  document.getElementById('btn-threat').classList.add('active');
+  document.getElementById('btn-normal').classList.remove('active');
+  fetch('/set_mode', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: 'threat' })
+  });
+
+  // scroll to the reports/insights section once per page load
+  if (!scrolledToReports) {
+    const reportsEl = document.getElementById('insights');
+    if (reportsEl) {
+      // give a tiny delay to allow layout if element is still hidden
+      setTimeout(() => {
+        reportsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+    scrolledToReports = true;
+  }
+}
+
+function dismissInsights() {
+  document.getElementById('insights').classList.add('hidden');
+}
+
+/* ──────────────────────────────────────────────
+   INIT
+────────────────────────────────────────────── */
+document.getElementById('login-time').textContent = ts();
+document.getElementById('btn-normal').classList.add('active');
+setInterval(fetchMetrics, 2000);
+fetchMetrics();
+</script>
+</body>
+</html>
